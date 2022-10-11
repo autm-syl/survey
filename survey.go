@@ -69,7 +69,7 @@ func main() {
 	api.POST("/create_type_2", Create_type_2)
 	api.POST("/create_type_3", Create_type_3)
 
-	e.Start(":8088")
+	e.Start(":5055")
 }
 
 func Ping(c echo.Context) error {
