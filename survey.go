@@ -68,6 +68,7 @@ func main() {
 	api.POST("/create_type_1", Create_type_1)
 	api.POST("/create_type_2", Create_type_2)
 	api.POST("/create_type_3", Create_type_3)
+	api.GET("/all_data", GetAllItemProductByQuery)
 
 	e.Start(":5055")
 }
@@ -242,15 +243,78 @@ func GetAllItemProductByQuery(c echo.Context) error {
 
 	// limit := 1
 	// offset := 1
+	var sessions []string
+	err := mySQLXContext.Select(&sessions, `SELECT session FROM survey_db.quest_type_1 group by session`)
+	if err != nil {
+		res := Response{
+			Message: "No record was found!",
+			Data:    err,
+		}
+
+		return c.JSON(http.StatusBadRequest, res)
+	}
+
+	var result_all_data []map[string]interface{}
+
+	for _, session := range sessions {
+		var quest_1s []Quest_type_1
+		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
+
+		var quest_type_2_return []Quest_type_2_return
+		var quest_2s []Quest_type_2
+		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? order by quest_num ASC`, session)
+		for _, quest2 := range quest_2s {
+
+			var quest_insite_2s []Inside_quest_type_2
+			_ = mySQLXContext.Select(&quest_insite_2s, `SELECT * FROM survey_db.inside_quest_type_2 where quest_type_2_id = ?`, quest2.Id)
+			x := Quest_type_2_return{
+				Id:           quest2.Id,
+				Session:      quest2.Session,
+				Quest_num:    quest2.Quest_num,
+				Quest_name:   quest2.Quest_name,
+				Inside_quest: quest_insite_2s,
+			}
+			quest_type_2_return = append(quest_type_2_return, x)
+		}
+
+		var quest_3s []Quest_type_3
+		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? order by quest_num ASC`, session)
+
+		var data []interface{}
+		for _, quest1 := range quest_1s {
+			var y interface{}
+			y = quest1
+			data = append(data, y)
+		}
+		for _, quest2 := range quest_type_2_return {
+			var y interface{}
+			y = quest2
+			data = append(data, y)
+		}
+		for _, quest3 := range quest_3s {
+			var y interface{}
+			y = quest3
+			data = append(data, y)
+		}
+
+		result_all_data = append(result_all_data, map[string]interface{}{
+			"session": session,
+			"data":    data,
+		})
+	}
+	// step2 loop all session get quest_1, quest_2, quest_3
+	// sort by quest_num
 
 	res := Response{
 		Message: "Success",
+		Data:    result_all_data,
 	}
 
 	return c.JSON(http.StatusOK, res)
 }
 
 func connect_db() {
+	// step1 get all session
 
 }
 
@@ -311,6 +375,14 @@ type Quest_type_3 struct {
 }
 
 type Quest_input_type_2 struct {
+	Id           int64                 `db:"id" json:"Id"`
+	Session      string                `db:"session" json:"Session"`
+	Quest_num    int                   `db:"quest_num" json:"Quest_num"`
+	Quest_name   string                `db:"quest_name" json:"Quest_name"`
+	Inside_quest []Inside_quest_type_2 `db:"inside_quest" json:"Inside_quest"`
+}
+
+type Quest_type_2_return struct {
 	Id           int64                 `db:"id" json:"Id"`
 	Session      string                `db:"session" json:"Session"`
 	Quest_num    int                   `db:"quest_num" json:"Quest_num"`
