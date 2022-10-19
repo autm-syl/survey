@@ -99,8 +99,8 @@ func Create_type_1(c echo.Context) error {
 		ctx = context.Background()
 	}
 
-	type_1 := Quest_type_1{}
-	if err := c.Bind(&type_1); err != nil {
+	var type_1s []Quest_type_1
+	if err := c.Bind(&type_1s); err != nil {
 		res := Response{
 			Message: "Failed",
 			Data:    "Bind data type_1 error",
@@ -110,21 +110,31 @@ func Create_type_1(c echo.Context) error {
 	}
 
 	// insert db
-	_, err := mySQLXContext.NamedExec(
-		`INSERT INTO 
+	var errors []interface{}
+	for _, type_1 := range type_1s {
+		_, err := mySQLXContext.NamedExec(
+			`INSERT INTO 
 		quest_type_1 (session, quest_num, quest_name, answer)
 		 VALUES 
 		 (:session, :quest_num, :quest_name, :answer)`,
-		type_1,
-	)
-	if err != nil {
+			type_1,
+		)
+		if err != nil {
+			err_res := map[string]interface{}{
+				"error": type_1,
+			}
+
+			fmt.Println("Create_type_1 buoi", err)
+
+			errors = append(errors, err_res)
+		}
+	}
+
+	if len(errors) != 0 {
 		res := Response{
 			Message: "Failed",
-			Data:    err,
+			Data:    errors,
 		}
-
-		fmt.Println("Create_type_1 buoi", err)
-
 		return c.JSON(http.StatusBadRequest, res)
 	}
 
@@ -141,8 +151,8 @@ func Create_type_2(c echo.Context) error {
 		ctx = context.Background()
 	}
 
-	type_2 := Quest_input_type_2{}
-	if err := c.Bind(&type_2); err != nil {
+	var type_2s []Quest_input_type_2
+	if err := c.Bind(&type_2s); err != nil {
 		res := Response{
 			Message: "Failed",
 			Data:    "Bind data type_2 error",
@@ -151,46 +161,57 @@ func Create_type_2(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, res)
 	}
 
-	// insert db
-	resIp, err := mySQLXContext.NamedExec(
-		`INSERT INTO 
-		quest_type_2 (session, quest_num, quest_name)
-		 VALUES 
-		 (:session, :quest_num, :quest_name)`,
-		type_2,
-	)
-	if err != nil {
-		res := Response{
-			Message: "Failed",
-			Data:    err,
-		}
-		return c.JSON(http.StatusBadRequest, res)
-	}
-
-	idQ2, err := resIp.LastInsertId()
-	if err != nil {
-		res := Response{
-			Message: "Failed",
-			Data:    err,
-		}
-		return c.JSON(http.StatusBadRequest, res)
-	}
-
-	for _, inside := range type_2.Inside_quest {
+	var errors []interface{}
+	for _, type_2 := range type_2s {
 		// insert db
-		inside.Quest_type_2_id = idQ2
-		_, err = mySQLXContext.NamedExec(
+		resIp, err := mySQLXContext.NamedExec(
 			`INSERT INTO 
+			quest_type_2 (session, quest_num, quest_name)
+			VALUES 
+			(:session, :quest_num, :quest_name)`,
+			type_2,
+		)
+		if err != nil {
+			err_res := map[string]interface{}{
+				"error": type_2,
+			}
+
+			errors = append(errors, err_res)
+		}
+
+		idQ2, err := resIp.LastInsertId()
+		if err != nil {
+			err_res := map[string]interface{}{
+				"error": err,
+			}
+
+			errors = append(errors, err_res)
+		}
+
+		for _, inside := range type_2.Inside_quest {
+			// insert db
+			inside.Quest_type_2_id = idQ2
+			_, err = mySQLXContext.NamedExec(
+				`INSERT INTO 
 			inside_quest_type_2 (quest_type_2_id, quest_name, quest_answer)
 			VALUES 
 			(:quest_type_2_id, :quest_name, :quest_answer)`,
-			inside,
-		)
+				inside,
+			)
 
-		if err != nil {
-			fmt.Println("Create_type_12 inside buoi", err)
+			if err != nil {
+				fmt.Println("Create_type_12 inside buoi", err)
+			}
+
 		}
+	}
 
+	if len(errors) != 0 {
+		res := Response{
+			Message: "Failed",
+			Data:    errors,
+		}
+		return c.JSON(http.StatusBadRequest, res)
 	}
 
 	res := Response{
@@ -206,8 +227,8 @@ func Create_type_3(c echo.Context) error {
 		ctx = context.Background()
 	}
 
-	type_3 := Quest_type_3{}
-	if err := c.Bind(&type_3); err != nil {
+	var type_3s []Quest_type_3
+	if err := c.Bind(&type_3s); err != nil {
 		res := Response{
 			Message: "Failed",
 			Data:    "Bind data type_3 error",
@@ -216,20 +237,31 @@ func Create_type_3(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, res)
 	}
 
+	var errors []interface{}
+
 	// insert db
-	_, err := mySQLXContext.NamedExec(
-		`INSERT INTO 
-		quest_type_3 (session, quest_num, quest_name, vi_tri, thoi_gian, ngoi_tren_xe, di_bo, calo, chi_phi, rui_ro, tham_gia)
-		 VALUES 
-		 (:session, :quest_num, :quest_name, :vi_tri, :thoi_gian, :ngoi_tren_xe, :di_bo, :calo, :chi_phi, :rui_ro, :tham_gia)`,
-		type_3,
-	)
-	if err != nil {
+	for _, type_3 := range type_3s {
+		_, err := mySQLXContext.NamedExec(
+			`INSERT INTO 
+			quest_type_3 (session, quest_num, quest_name, vi_tri, thoi_gian, ngoi_tren_xe, di_bo, calo, chi_phi, rui_ro, tham_gia)
+			 VALUES 
+			 (:session, :quest_num, :quest_name, :vi_tri, :thoi_gian, :ngoi_tren_xe, :di_bo, :calo, :chi_phi, :rui_ro, :tham_gia)`,
+			type_3,
+		)
+		if err != nil {
+			err_res := map[string]interface{}{
+				"error": type_3,
+			}
+
+			errors = append(errors, err_res)
+		}
+	}
+
+	if len(errors) != 0 {
 		res := Response{
 			Message: "Failed",
-			Data:    err,
+			Data:    errors,
 		}
-
 		return c.JSON(http.StatusBadRequest, res)
 	}
 
