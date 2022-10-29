@@ -76,6 +76,7 @@ func main() {
 	api.POST("/create_type_2", Create_type_2)
 	api.POST("/create_type_3", Create_type_3)
 	api.GET("/all_data", GetAllItemProductByQuery)
+	api.GET("/export_pdf", ExportExcel)
 
 	e.Start(":5055")
 }
@@ -112,11 +113,12 @@ func Create_type_1(c echo.Context) error {
 	// insert db
 	var errors []interface{}
 	for _, type_1 := range type_1s {
+		type_1.Created_at = time.Now().Unix()
 		_, err := mySQLXContext.NamedExec(
 			`INSERT INTO 
-		quest_type_1 (session, quest_num, quest_name, answer)
+		quest_type_1 (session, quest_num, quest_name, answer, created_at)
 		 VALUES 
-		 (:session, :quest_num, :quest_name, :answer)`,
+		 (:session, :quest_num, :quest_name, :answer, :created_at)`,
 			type_1,
 		)
 		if err != nil {
@@ -163,12 +165,13 @@ func Create_type_2(c echo.Context) error {
 
 	var errors []interface{}
 	for _, type_2 := range type_2s {
+		type_2.Created_at = time.Now().Unix()
 		// insert db
 		resIp, err := mySQLXContext.NamedExec(
 			`INSERT INTO 
-			quest_type_2 (session, quest_num, quest_name)
+			quest_type_2 (session, quest_num, quest_name, created_at)
 			VALUES 
-			(:session, :quest_num, :quest_name)`,
+			(:session, :quest_num, :quest_name, :created_at)`,
 			type_2,
 		)
 		if err != nil {
@@ -241,11 +244,12 @@ func Create_type_3(c echo.Context) error {
 
 	// insert db
 	for _, type_3 := range type_3s {
+		type_3.Created_at = time.Now().Unix()
 		_, err := mySQLXContext.NamedExec(
 			`INSERT INTO 
-			quest_type_3 (session, quest_num, quest_name, vi_tri, thoi_gian, ngoi_tren_xe, di_bo, calo, chi_phi, rui_ro, tham_gia)
+			quest_type_3 (session, quest_num, quest_name, vi_tri, thoi_gian, ngoi_tren_xe, di_bo, calo, chi_phi, rui_ro, tham_gia, created_at)
 			 VALUES 
-			 (:session, :quest_num, :quest_name, :vi_tri, :thoi_gian, :ngoi_tren_xe, :di_bo, :calo, :chi_phi, :rui_ro, :tham_gia)`,
+			 (:session, :quest_num, :quest_name, :vi_tri, :thoi_gian, :ngoi_tren_xe, :di_bo, :calo, :chi_phi, :rui_ro, :tham_gia, :created_at)`,
 			type_3,
 		)
 		if err != nil {
@@ -296,6 +300,9 @@ func GetAllItemProductByQuery(c echo.Context) error {
 	var result_all_data []map[string]interface{}
 
 	for _, session := range sessions {
+		var minTime = time.Now().Unix()
+		var maxTime int64 = 0
+
 		var quest_1s []Quest_type_1
 		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
 
@@ -303,7 +310,13 @@ func GetAllItemProductByQuery(c echo.Context) error {
 		var quest_2s []Quest_type_2
 		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? order by quest_num ASC`, session)
 		for _, quest2 := range quest_2s {
+			if quest2.Created_at <= minTime {
+				minTime = quest2.Created_at
+			}
 
+			if quest2.Created_at >= int64(maxTime) {
+				maxTime = quest2.Created_at
+			}
 			var quest_insite_2s []Inside_quest_type_2
 			_ = mySQLXContext.Select(&quest_insite_2s, `SELECT * FROM survey_db.inside_quest_type_2 where quest_type_2_id = ?`, quest2.Id)
 			x := Quest_type_2_return{
@@ -320,7 +333,16 @@ func GetAllItemProductByQuery(c echo.Context) error {
 		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? order by quest_num ASC`, session)
 
 		var data []interface{}
+
 		for _, quest1 := range quest_1s {
+			if quest1.Created_at <= minTime {
+				minTime = quest1.Created_at
+			}
+
+			if quest1.Created_at >= int64(maxTime) {
+				maxTime = quest1.Created_at
+			}
+
 			var y interface{}
 			y = quest1
 			data = append(data, y)
@@ -331,14 +353,126 @@ func GetAllItemProductByQuery(c echo.Context) error {
 			data = append(data, y)
 		}
 		for _, quest3 := range quest_3s {
+			if quest3.Created_at <= minTime {
+				minTime = quest3.Created_at
+			}
+
+			if quest3.Created_at >= int64(maxTime) {
+				maxTime = quest3.Created_at
+			}
 			var y interface{}
 			y = quest3
 			data = append(data, y)
 		}
 
 		result_all_data = append(result_all_data, map[string]interface{}{
-			"session": session,
-			"data":    data,
+			"session":  session,
+			"duration": maxTime - minTime,
+			"data":     data,
+		})
+	}
+	// step2 loop all session get quest_1, quest_2, quest_3
+	// sort by quest_num
+
+	res := Response{
+		Message: "Success",
+		Data:    result_all_data,
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func ExportExcel(c echo.Context) error {
+	ctx := c.Request().Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	// limit := 1
+	// offset := 1
+	var sessions []string
+	err := mySQLXContext.Select(&sessions, `SELECT session FROM survey_db.quest_type_1 group by session`)
+	if err != nil {
+		res := Response{
+			Message: "No record was found!",
+			Data:    err,
+		}
+
+		return c.JSON(http.StatusBadRequest, res)
+	}
+
+	var result_all_data []map[string]interface{}
+
+	for _, session := range sessions {
+		var minTime = time.Now().Unix()
+		var maxTime int64 = 0
+
+		var quest_1s []Quest_type_1
+		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
+
+		var quest_type_2_return []Quest_type_2_return
+		var quest_2s []Quest_type_2
+		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? order by quest_num ASC`, session)
+		for _, quest2 := range quest_2s {
+			if quest2.Created_at <= minTime {
+				minTime = quest2.Created_at
+			}
+
+			if quest2.Created_at >= int64(maxTime) {
+				maxTime = quest2.Created_at
+			}
+			var quest_insite_2s []Inside_quest_type_2
+			_ = mySQLXContext.Select(&quest_insite_2s, `SELECT * FROM survey_db.inside_quest_type_2 where quest_type_2_id = ?`, quest2.Id)
+			x := Quest_type_2_return{
+				Id:           quest2.Id,
+				Session:      quest2.Session,
+				Quest_num:    quest2.Quest_num,
+				Quest_name:   quest2.Quest_name,
+				Inside_quest: quest_insite_2s,
+			}
+			quest_type_2_return = append(quest_type_2_return, x)
+		}
+
+		var quest_3s []Quest_type_3
+		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? order by quest_num ASC`, session)
+
+		var data []interface{}
+
+		for _, quest1 := range quest_1s {
+			if quest1.Created_at <= minTime {
+				minTime = quest1.Created_at
+			}
+
+			if quest1.Created_at >= int64(maxTime) {
+				maxTime = quest1.Created_at
+			}
+
+			var y interface{}
+			y = quest1
+			data = append(data, y)
+		}
+		for _, quest2 := range quest_type_2_return {
+			var y interface{}
+			y = quest2
+			data = append(data, y)
+		}
+		for _, quest3 := range quest_3s {
+			if quest3.Created_at <= minTime {
+				minTime = quest3.Created_at
+			}
+
+			if quest3.Created_at >= int64(maxTime) {
+				maxTime = quest3.Created_at
+			}
+			var y interface{}
+			y = quest3
+			data = append(data, y)
+		}
+
+		result_all_data = append(result_all_data, map[string]interface{}{
+			"session":  session,
+			"duration": maxTime - minTime,
+			"data":     data,
 		})
 	}
 	// step2 loop all session get quest_1, quest_2, quest_3
@@ -382,6 +516,7 @@ type Quest_type_1 struct {
 	Quest_num  int    `db:"quest_num" json:"Quest_num"`
 	Quest_name string `db:"quest_name" json:"Quest_name"`
 	Answer     string `db:"answer" json:"Answer"`
+	Created_at int64  `db:"created_at" json:"Created_at"`
 }
 
 type Inside_quest_type_2 struct {
@@ -396,6 +531,7 @@ type Quest_type_2 struct {
 	Session    string `db:"session" json:"Session"`
 	Quest_num  int    `db:"quest_num" json:"Quest_num"`
 	Quest_name string `db:"quest_name" json:"Quest_name"`
+	Created_at int64  `db:"created_at" json:"Created_at"`
 }
 
 type Quest_type_3 struct {
@@ -411,6 +547,7 @@ type Quest_type_3 struct {
 	Chi_phi      int    `db:"chi_phi" json:"Chi_phi"`
 	Rui_ro       string `db:"rui_ro" json:"Rui_ro"`
 	Tham_gia     string `db:"tham_gia" json:"Tham_gia"`
+	Created_at   int64  `db:"created_at" json:"Created_at"`
 }
 
 type Quest_input_type_2 struct {
@@ -419,6 +556,7 @@ type Quest_input_type_2 struct {
 	Quest_num    int                   `db:"quest_num" json:"Quest_num"`
 	Quest_name   string                `db:"quest_name" json:"Quest_name"`
 	Inside_quest []Inside_quest_type_2 `db:"inside_quest" json:"Inside_quest"`
+	Created_at   int64                 `db:"created_at" json:"Created_at"`
 }
 
 type Quest_type_2_return struct {
