@@ -414,11 +414,11 @@ func ExportExcel(c echo.Context) error {
 		var result_answer []string
 
 		var quest_1s []Quest_type_1
-		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
+		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? group by quest_num order by quest_num ASC`, session)
 
 		var quest_type_2_return []Quest_type_2_return
 		var quest_2s []Quest_type_2
-		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? order by quest_num ASC`, session)
+		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? group by quest_num order by quest_num ASC`, session)
 		for _, quest2 := range quest_2s {
 			if quest2.Created_at <= minTime {
 				minTime = quest2.Created_at
@@ -440,7 +440,7 @@ func ExportExcel(c echo.Context) error {
 		}
 
 		var quest_3s []Quest_type_3
-		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? order by quest_num ASC`, session)
+		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? group by quest_num order by quest_num ASC`, session)
 
 		for _, quest1 := range quest_1s {
 			if quest1.Created_at <= minTime {
