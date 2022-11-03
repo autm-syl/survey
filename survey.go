@@ -542,16 +542,16 @@ func ExportExcel(c echo.Context) error {
 	println("dau buoi re rech\n")
 	fmt.Printf("%v", nameHead)
 
-	// if err := f.SaveAs("Book1.xlsx"); err != nil {
-	// 	fmt.Println(err)
+	if err := f.SaveAs("Book1.xlsx"); err != nil {
+		fmt.Println(err)
 
-	// 	res := Response{
-	// 		Message: "Success",
-	// 		Data:    "dbrr",
-	// 	}
+		res := Response{
+			Message: "Success",
+			Data:    "dbrr 2222",
+		}
 
-	// 	return c.JSON(http.StatusOK, res)
-	// }
+		return c.JSON(http.StatusOK, res)
+	}
 	// res := Response{
 	// 	Message: "Success",
 	// 	Data:    "dbrr",
