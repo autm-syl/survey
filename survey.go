@@ -523,10 +523,14 @@ func ExportExcel(c echo.Context) error {
 	}
 
 	for i, v := range result_value_excel {
-		for k, v2 := range v {
-			position := fmt.Sprintf(`%s%d`, cotName[k], i+2)
-			f.SetCellValue("Sheet1", position, v2)
-		}
+		// for k, v2 := range v {
+		// 	position := fmt.Sprintf(`%s%d`, cotName[k], i+2)
+		// 	f.SetCellValue("Sheet1", position, v2)
+		// 	fmt.Printf("%v", nameHead)
+		// 	fmt.Printf("%v", nameHead)
+		// }
+		fmt.Printf("\nrow%d\n", i)
+		fmt.Printf("value%v\n", v)
 	}
 	// // Set value of a cell.
 	// f.SetCellValue("Sheet1", "A2", "Hello world.")
