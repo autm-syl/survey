@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/xuri/excelize/v2"
 )
 
 var mySQLXContext *sqlx.DB
@@ -76,7 +78,7 @@ func main() {
 	api.POST("/create_type_2", Create_type_2)
 	api.POST("/create_type_3", Create_type_3)
 	api.GET("/all_data", GetAllItemProductByQuery)
-	api.GET("/export_pdf", ExportExcel2)
+	api.GET("/export_pdf", ExportExcel)
 
 	e.Start(":5055")
 }
@@ -402,7 +404,7 @@ func ExportExcel(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, res)
 	}
 
-	var result_value_excel []map[string][]string
+	var result_value_excel [][]string
 
 	for _, session := range sessions {
 
@@ -440,44 +442,43 @@ func ExportExcel(c echo.Context) error {
 		var quest_3s []Quest_type_3
 		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? order by quest_num ASC`, session)
 
-		/*
-			for _, quest1 := range quest_1s {
-				if quest1.Created_at <= minTime {
-					minTime = quest1.Created_at
-				}
-
-				if quest1.Created_at >= int64(maxTime) {
-					maxTime = quest1.Created_at
-				}
-
-				result_answer = append(result_answer, quest1.Answer)
+		for _, quest1 := range quest_1s {
+			if quest1.Created_at <= minTime {
+				minTime = quest1.Created_at
 			}
-			for _, quest2 := range quest_type_2_return {
-				num := 0
-				total := 0
-				for _, insiteQ2 := range quest2.Inside_quest {
-					answer := insiteQ2.Quest_answer
-					// string to int
-					answerInt, err := strconv.Atoi(answer)
-					if err != nil {
-						// ... skip
-					} else {
-						num = num + 1
-						total = total + answerInt
-					}
-				}
-				value := total / num
-				result_answer = append(result_answer, strconv.Itoa(value))
-			}
-			for _, quest3 := range quest_3s {
-				if quest3.Created_at <= minTime {
-					minTime = quest3.Created_at
-				}
 
-				if quest3.Created_at >= int64(maxTime) {
-					maxTime = quest3.Created_at
+			if quest1.Created_at >= int64(maxTime) {
+				maxTime = quest1.Created_at
+			}
+
+			result_answer = append(result_answer, quest1.Answer)
+		}
+		for _, quest2 := range quest_type_2_return {
+			num := 0
+			total := 0
+			for _, insiteQ2 := range quest2.Inside_quest {
+				answer := insiteQ2.Quest_answer
+				// string to int
+				answerInt, err := strconv.Atoi(answer)
+				if err != nil {
+					// ... skip
+				} else {
+					num = num + 1
+					total = total + answerInt
 				}
-				answer := fmt.Sprintf(`Vị trí: %s
+			}
+			value := total / num
+			result_answer = append(result_answer, strconv.Itoa(value))
+		}
+		for _, quest3 := range quest_3s {
+			if quest3.Created_at <= minTime {
+				minTime = quest3.Created_at
+			}
+
+			if quest3.Created_at >= int64(maxTime) {
+				maxTime = quest3.Created_at
+			}
+			answer := fmt.Sprintf(`Vị trí: %s
 				Ngồi chờ trên xe: %d
 				Đi bộ: %d
 				Tổng thời gian: %d
@@ -485,24 +486,25 @@ func ExportExcel(c echo.Context) error {
 				Chi phí đưa đón: %d
 				Mức an toàn: %s
 				Sự tham gia của phụ huynh: %s`,
-					quest3.Vi_tri,
-					quest3.Ngoi_tren_xe,
-					quest3.Di_bo,
-					quest3.Thoi_gian,
-					quest3.Calo,
-					quest3.Chi_phi,
-					quest3.Rui_ro,
-					quest3.Tham_gia)
+				quest3.Vi_tri,
+				quest3.Ngoi_tren_xe,
+				quest3.Di_bo,
+				quest3.Thoi_gian,
+				quest3.Calo,
+				quest3.Chi_phi,
+				quest3.Rui_ro,
+				quest3.Tham_gia)
 
-				result_answer = append(result_answer, answer)
-			}
-		*/
+			result_answer = append(result_answer, answer)
+		}
+
 		duration := fmt.Sprintf("%d", maxTime-minTime)
 		result_answer = append(result_answer, duration)
 
-		result_value_excel = append(result_value_excel, map[string][]string{
-			session: result_answer,
-		})
+		// result_value_excel = append(result_value_excel, map[string][]string{
+		// 	session: result_answer,
+		// })
+		result_value_excel = append(result_value_excel, result_answer)
 
 	}
 
@@ -516,16 +518,23 @@ func ExportExcel(c echo.Context) error {
 	// step2 loop all session get quest_1, quest_2, quest_3
 	// sort by quest_num
 
-	// f := excelize.NewFile()
+	f := excelize.NewFile()
 
 	nameHead := []string{"Họ tên", "SĐT", "Email", "Quận", "Phường", "Trường", "Câu 1", "Câu 2", "Câu 3", "Câu 4", "Câu 5", "Câu 6", "Câu 7", "Câu 8", "Câu 9", "Câu 10", "Câu 11", "Câu 12", "Câu 13", "Câu 14", "Câu 15", "Câu 16", "Câu 17", "Câu 18", "Câu 19", "Câu 20", "Câu 21"}
 
-	// cotName := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK", "AL"}
+	cotName := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK", "AL"}
 
-	// for i, v := range nameHead {
-	// 	position := fmt.Sprintf(`%s%d`, cotName[i], 1)
-	// 	f.SetCellValue("Sheet1", position, v)
-	// }
+	for i, v := range nameHead {
+		position := fmt.Sprintf(`%s%d`, cotName[i], 1)
+		f.SetCellValue("Sheet1", position, v)
+	}
+
+	for i, v := range result_value_excel {
+		for k, v2 := range v {
+			position := fmt.Sprintf(`%s%d`, cotName[k], i+2)
+			f.SetCellValue("Sheet1", position, v2)
+		}
+	}
 	// // Set value of a cell.
 	// f.SetCellValue("Sheet1", "A2", "Hello world.")
 	// Save spreadsheet by the given path.
@@ -543,117 +552,13 @@ func ExportExcel(c echo.Context) error {
 
 	// 	return c.JSON(http.StatusOK, res)
 	// }
-	res := Response{
-		Message: "Success",
-		Data:    "dbrr",
-	}
+	// res := Response{
+	// 	Message: "Success",
+	// 	Data:    "dbrr",
+	// }
 
-	return c.JSON(http.StatusOK, res)
-	// return c.File("Book1.xlsx")
-}
-
-func ExportExcel2(c echo.Context) error {
-	ctx := c.Request().Context()
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	// limit := 1
-	// offset := 1
-	var sessions []string
-	err := mySQLXContext.Select(&sessions, `SELECT session FROM survey_db.quest_type_1 group by session`)
-	if err != nil {
-		res := Response{
-			Message: "No record was found!",
-			Data:    err,
-		}
-
-		return c.JSON(http.StatusBadRequest, res)
-	}
-
-	var result_all_data []map[string]interface{}
-
-	for _, session := range sessions {
-		var minTime = time.Now().Unix()
-		var maxTime int64 = 0
-
-		var quest_1s []Quest_type_1
-		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
-
-		var quest_type_2_return []Quest_type_2_return
-		var quest_2s []Quest_type_2
-		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? order by quest_num ASC`, session)
-		for _, quest2 := range quest_2s {
-			if quest2.Created_at <= minTime {
-				minTime = quest2.Created_at
-			}
-
-			if quest2.Created_at >= int64(maxTime) {
-				maxTime = quest2.Created_at
-			}
-			var quest_insite_2s []Inside_quest_type_2
-			_ = mySQLXContext.Select(&quest_insite_2s, `SELECT * FROM survey_db.inside_quest_type_2 where quest_type_2_id = ?`, quest2.Id)
-			x := Quest_type_2_return{
-				Id:           quest2.Id,
-				Session:      quest2.Session,
-				Quest_num:    quest2.Quest_num,
-				Quest_name:   quest2.Quest_name,
-				Inside_quest: quest_insite_2s,
-			}
-			quest_type_2_return = append(quest_type_2_return, x)
-		}
-
-		var quest_3s []Quest_type_3
-		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? order by quest_num ASC`, session)
-
-		var data []interface{}
-
-		for _, quest1 := range quest_1s {
-			if quest1.Created_at <= minTime {
-				minTime = quest1.Created_at
-			}
-
-			if quest1.Created_at >= int64(maxTime) {
-				maxTime = quest1.Created_at
-			}
-
-			var y interface{}
-			y = quest1
-			data = append(data, y)
-		}
-		for _, quest2 := range quest_type_2_return {
-			var y interface{}
-			y = quest2
-			data = append(data, y)
-		}
-		for _, quest3 := range quest_3s {
-			if quest3.Created_at <= minTime {
-				minTime = quest3.Created_at
-			}
-
-			if quest3.Created_at >= int64(maxTime) {
-				maxTime = quest3.Created_at
-			}
-			var y interface{}
-			y = quest3
-			data = append(data, y)
-		}
-
-		result_all_data = append(result_all_data, map[string]interface{}{
-			"session":  session,
-			"duration": maxTime - minTime,
-			"data":     data,
-		})
-	}
-	// step2 loop all session get quest_1, quest_2, quest_3
-	// sort by quest_num
-
-	res := Response{
-		Message: "Success",
-		Data:    result_all_data,
-	}
-
-	return c.JSON(http.StatusOK, res)
+	// return c.JSON(http.StatusOK, res)
+	return c.File("Book1.xlsx")
 }
 
 func connect_db() {
