@@ -530,7 +530,7 @@ func ExportExcel(c echo.Context) error {
 		// 	fmt.Printf("%v", nameHead)
 		// }
 		fmt.Printf("\nrow%d\n", i)
-		fmt.Printf("value%v\n", v)
+		fmt.Printf("value count %d\n", len(v))
 	}
 	// // Set value of a cell.
 	// f.SetCellValue("Sheet1", "A2", "Hello world.")
