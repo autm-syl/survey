@@ -508,13 +508,6 @@ func ExportExcel(c echo.Context) error {
 
 	}
 
-	resx := Response{
-		Message: "Success",
-		Data:    "dbrr",
-	}
-
-	return c.JSON(http.StatusOK, resx)
-
 	// step2 loop all session get quest_1, quest_2, quest_3
 	// sort by quest_num
 
