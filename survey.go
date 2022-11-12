@@ -305,7 +305,7 @@ func GetAllItemProductByQuery(c echo.Context) error {
 	for _, session := range sessions {
 		var curentTime = time.Now().Unix()
 		var session_time = 0
-		time_sessions := strings.Split(session, ",")
+		time_sessions := strings.Split(session, "_")
 		if len(time_sessions) == 2 {
 			intVar, err := strconv.Atoi(time_sessions[1])
 			if err == nil {
