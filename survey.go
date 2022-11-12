@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -302,8 +303,19 @@ func GetAllItemProductByQuery(c echo.Context) error {
 	var result_all_data []map[string]interface{}
 
 	for _, session := range sessions {
-		var minTime = time.Now().Unix()
-		var maxTime int64 = 0
+		var curentTime = time.Now().Unix()
+		var session_time = 0
+		time_sessions := strings.Split(session, ",")
+		if len(time_sessions) == 2 {
+			intVar, err := strconv.Atoi(time_sessions[1])
+			if err == nil {
+				session_time = intVar
+			}
+		}
+		var duration = curentTime - int64(session_time/1000)
+		if session_time == 0 {
+			duration = 0
+		}
 
 		var quest_1s []Quest_type_1
 		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
@@ -312,13 +324,7 @@ func GetAllItemProductByQuery(c echo.Context) error {
 		var quest_2s []Quest_type_2
 		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? order by quest_num ASC`, session)
 		for _, quest2 := range quest_2s {
-			if quest2.Created_at <= minTime {
-				minTime = quest2.Created_at
-			}
 
-			if quest2.Created_at >= int64(maxTime) {
-				maxTime = quest2.Created_at
-			}
 			var quest_insite_2s []Inside_quest_type_2
 			_ = mySQLXContext.Select(&quest_insite_2s, `SELECT * FROM survey_db.inside_quest_type_2 where quest_type_2_id = ?`, quest2.Id)
 			x := Quest_type_2_return{
@@ -337,13 +343,6 @@ func GetAllItemProductByQuery(c echo.Context) error {
 		var data []interface{}
 
 		for _, quest1 := range quest_1s {
-			if quest1.Created_at <= minTime {
-				minTime = quest1.Created_at
-			}
-
-			if quest1.Created_at >= int64(maxTime) {
-				maxTime = quest1.Created_at
-			}
 
 			var y interface{}
 			y = quest1
@@ -355,13 +354,7 @@ func GetAllItemProductByQuery(c echo.Context) error {
 			data = append(data, y)
 		}
 		for _, quest3 := range quest_3s {
-			if quest3.Created_at <= minTime {
-				minTime = quest3.Created_at
-			}
 
-			if quest3.Created_at >= int64(maxTime) {
-				maxTime = quest3.Created_at
-			}
 			var y interface{}
 			y = quest3
 			data = append(data, y)
@@ -369,7 +362,7 @@ func GetAllItemProductByQuery(c echo.Context) error {
 
 		result_all_data = append(result_all_data, map[string]interface{}{
 			"session":  session,
-			"duration": maxTime - minTime,
+			"duration": duration,
 			"data":     data,
 		})
 	}
@@ -513,7 +506,7 @@ func ExportExcel(c echo.Context) error {
 
 	f := excelize.NewFile()
 
-	nameHead := []string{"Họ tên", "SĐT", "Email", "Quận", "Phường", "Trường", "Câu 1", "Câu 2", "Câu 3", "Câu 4", "Câu 5", "Câu 6", "Câu 7", "Câu 8", "Câu 9", "Câu 10", "Câu 11", "Câu 12", "Câu 13", "Câu 14", "Câu 15", "Câu 16", "Câu 17", "Câu 18", "Câu 19", "Câu 20", "Câu 21"}
+	nameHead := []string{"Họ tên", "SĐT", "Email", "Quận", "Phường", "Trường", "Câu 1", "Câu 2", "Câu 3", "Câu 4", "Câu 5", "Câu 6", "Câu 7", "Câu 8", "Câu 9", "Câu 10", "Câu 11", "Câu 12", "Câu 13", "Câu 14", "Câu 15", "Câu 16", "Câu 17", "Câu 18(TH1)", "Câu 18(TH2)", "Câu 18(TH3)", "Câu 19", "Câu 20", "Câu 21"}
 
 	cotName := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK", "AL"}
 
@@ -523,7 +516,7 @@ func ExportExcel(c echo.Context) error {
 	}
 
 	for i, v := range result_value_excel {
-		if len(v) > 28 {
+		if len(v) > 30 {
 			fmt.Printf("\ndata loi: %v", v)
 			continue
 		} else {
