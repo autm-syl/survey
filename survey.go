@@ -312,7 +312,7 @@ func GetAllItemProductByQuery(c echo.Context) error {
 				session_time = intVar
 			}
 		}
-		var duration = curentTime - int64(session_time/1000)
+		var duration = curentTime - int64(session_time)
 		if session_time == 0 {
 			duration = 0
 		}
