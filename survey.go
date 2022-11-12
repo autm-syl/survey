@@ -312,10 +312,12 @@ func GetAllItemProductByQuery(c echo.Context) error {
 				session_time = intVar
 			}
 		}
-		var duration = curentTime - int64(session_time)
+		var duration = curentTime - int64(session_time/1000)
 		if session_time == 0 {
 			duration = 0
 		}
+		fmt.Printf("\ndata curentTime: %v\n", curentTime)
+		fmt.Printf("\ndata session_time: %v\n", session_time)
 
 		var quest_1s []Quest_type_1
 		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
