@@ -451,7 +451,7 @@ func ExportExcel(c echo.Context) error {
 		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? group by quest_num order by quest_num ASC`, session)
 
 		if len(quest_1s) == 22 {
-			phandau := quest_1s[0:18]
+			phandau := quest_1s[0:19]
 			phancuoi := quest_1s[19:]
 			for _, quest1 := range phandau {
 				result_answer = append(result_answer, quest1.Answer)
