@@ -450,57 +450,111 @@ func ExportExcel(c echo.Context) error {
 		var quest_3s []Quest_type_3
 		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? group by quest_num order by quest_num ASC`, session)
 
-		for _, quest1 := range quest_1s {
-			result_answer = append(result_answer, quest1.Answer)
-		}
-		for _, quest2 := range quest_type_2_return {
-			num := 0
-			total := 0
-			for _, insiteQ2 := range quest2.Inside_quest {
-				answer := insiteQ2.Quest_answer
-				// string to int
-				answerInt, err := strconv.Atoi(answer)
-				if err != nil {
-					// ... skip
-				} else {
-					num = num + 1
-					total = total + answerInt
+		if len(quest_1s) == 22 {
+			phandau := quest_1s[0:18]
+			phancuoi := quest_1s[19:]
+			for _, quest1 := range phandau {
+				result_answer = append(result_answer, quest1.Answer)
+			}
+
+			for _, quest2 := range quest_type_2_return {
+				num := 0
+				total := 0
+				for _, insiteQ2 := range quest2.Inside_quest {
+					answer := insiteQ2.Quest_answer
+					// string to int
+					answerInt, err := strconv.Atoi(answer)
+					if err != nil {
+						// ... skip
+					} else {
+						num = num + 1
+						total = total + answerInt
+					}
 				}
+				if num == 0 {
+					num = 1
+				}
+				value := total / num
+				result_answer = append(result_answer, strconv.Itoa(value))
 			}
-			if num == 0 {
-				num = 1
+			for _, quest3 := range quest_3s {
+				answer := fmt.Sprintf(`Vị trí: %s
+					Ngồi chờ trên xe: %d
+					Đi bộ: %d
+					Tổng thời gian: %d
+					Calo: %d
+					Chi phí đưa đón: %d
+					Mức an toàn: %s
+					Sự tham gia của phụ huynh: %s`,
+					quest3.Vi_tri,
+					quest3.Ngoi_tren_xe,
+					quest3.Di_bo,
+					quest3.Thoi_gian,
+					quest3.Calo,
+					quest3.Chi_phi,
+					quest3.Rui_ro,
+					quest3.Tham_gia)
+
+				result_answer = append(result_answer, answer)
 			}
-			value := total / num
-			result_answer = append(result_answer, strconv.Itoa(value))
+
+			for _, quest1 := range phancuoi {
+				result_answer = append(result_answer, quest1.Answer)
+			}
+
+			durations := fmt.Sprintf("%d", duration)
+			result_answer = append(result_answer, durations)
+			result_value_excel = append(result_value_excel, result_answer)
+		} else {
+			for _, quest1 := range quest_1s {
+				result_answer = append(result_answer, quest1.Answer)
+			}
+
+			for _, quest2 := range quest_type_2_return {
+				num := 0
+				total := 0
+				for _, insiteQ2 := range quest2.Inside_quest {
+					answer := insiteQ2.Quest_answer
+					// string to int
+					answerInt, err := strconv.Atoi(answer)
+					if err != nil {
+						// ... skip
+					} else {
+						num = num + 1
+						total = total + answerInt
+					}
+				}
+				if num == 0 {
+					num = 1
+				}
+				value := total / num
+				result_answer = append(result_answer, strconv.Itoa(value))
+			}
+			for _, quest3 := range quest_3s {
+				answer := fmt.Sprintf(`Vị trí: %s
+					Ngồi chờ trên xe: %d
+					Đi bộ: %d
+					Tổng thời gian: %d
+					Calo: %d
+					Chi phí đưa đón: %d
+					Mức an toàn: %s
+					Sự tham gia của phụ huynh: %s`,
+					quest3.Vi_tri,
+					quest3.Ngoi_tren_xe,
+					quest3.Di_bo,
+					quest3.Thoi_gian,
+					quest3.Calo,
+					quest3.Chi_phi,
+					quest3.Rui_ro,
+					quest3.Tham_gia)
+
+				result_answer = append(result_answer, answer)
+			}
+
+			durations := fmt.Sprintf("%d", duration)
+			result_answer = append(result_answer, durations)
+			result_value_excel = append(result_value_excel, result_answer)
 		}
-		for _, quest3 := range quest_3s {
-			answer := fmt.Sprintf(`Vị trí: %s
-				Ngồi chờ trên xe: %d
-				Đi bộ: %d
-				Tổng thời gian: %d
-				Calo: %d
-				Chi phí đưa đón: %d
-				Mức an toàn: %s
-				Sự tham gia của phụ huynh: %s`,
-				quest3.Vi_tri,
-				quest3.Ngoi_tren_xe,
-				quest3.Di_bo,
-				quest3.Thoi_gian,
-				quest3.Calo,
-				quest3.Chi_phi,
-				quest3.Rui_ro,
-				quest3.Tham_gia)
-
-			result_answer = append(result_answer, answer)
-		}
-
-		durations := fmt.Sprintf("%d", duration)
-		result_answer = append(result_answer, durations)
-
-		// result_value_excel = append(result_value_excel, map[string][]string{
-		// 	session: result_answer,
-		// })
-		result_value_excel = append(result_value_excel, result_answer)
 
 	}
 
@@ -509,7 +563,7 @@ func ExportExcel(c echo.Context) error {
 
 	f := excelize.NewFile()
 
-	nameHead := []string{"Họ tên", "SĐT", "Email", "Quận", "Phường", "Trường", "Câu 1", "Câu 2", "Câu 3", "Câu 4", "Câu 5", "Câu 6", "Câu 7", "Câu 8", "Câu 9", "Câu 10", "Câu 11", "Câu 12", "Câu 13", "Câu 14", "Câu 15", "Câu 16", "Câu 17", "Câu 18(TH1)", "Câu 18(TH2)", "Câu 18(TH3)", "Câu 19", "Câu 20", "Câu 21"}
+	nameHead := []string{"Họ tên", "SĐT", "Email", "Quận", "Phường", "Trường", "Câu 1", "Câu 2", "Câu 3", "Câu 4", "Câu 5", "Câu 6", "Câu 7", "Câu 8", "Câu 9", "Câu 10", "Câu 11", "Câu 12", "Câu 13", "Câu 14", "Câu 15", "Câu 16", "Câu 17", "Câu 18(TH1)", "Câu 18(TH2)", "Câu 18(TH3)", "Câu 19", "Câu 20", "Câu 21", "Thời gian trả lời"}
 
 	cotName := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH", "AI", "AJ", "AK", "AL"}
 
