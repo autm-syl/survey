@@ -303,7 +303,15 @@ func GetAllItemProductByQuery(c echo.Context) error {
 	var result_all_data []map[string]interface{}
 
 	for _, session := range sessions {
+
+		var quest_1s []Quest_type_1
+		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
+
+		// time
 		var curentTime = time.Now().Unix()
+		if len(quest_1s) != 0 {
+			curentTime = quest_1s[0].Created_at
+		}
 		var session_time = 0
 		time_sessions := strings.Split(session, "_")
 		if len(time_sessions) == 2 {
@@ -319,14 +327,10 @@ func GetAllItemProductByQuery(c echo.Context) error {
 		fmt.Printf("\ndata curentTime: %v\n", curentTime)
 		fmt.Printf("\ndata session_time: %v\n", session_time)
 
-		var quest_1s []Quest_type_1
-		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? order by quest_num ASC`, session)
-
 		var quest_type_2_return []Quest_type_2_return
 		var quest_2s []Quest_type_2
 		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? order by quest_num ASC`, session)
 		for _, quest2 := range quest_2s {
-
 			var quest_insite_2s []Inside_quest_type_2
 			_ = mySQLXContext.Select(&quest_insite_2s, `SELECT * FROM survey_db.inside_quest_type_2 where quest_type_2_id = ?`, quest2.Id)
 			x := Quest_type_2_return{
