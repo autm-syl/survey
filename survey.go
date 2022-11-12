@@ -406,26 +406,35 @@ func ExportExcel(c echo.Context) error {
 	var result_value_excel [][]string
 
 	for _, session := range sessions {
-
-		var minTime = time.Now().Unix()
-		var maxTime int64 = 0
-
 		var result_answer []string
 
 		var quest_1s []Quest_type_1
 		_ = mySQLXContext.Select(&quest_1s, `SELECT * FROM survey_db.quest_type_1 where session = ? group by quest_num order by quest_num ASC`, session)
 
+		// time
+		var curentTime = time.Now().Unix()
+		if len(quest_1s) != 0 {
+			curentTime = quest_1s[0].Created_at
+		}
+		var session_time = 0
+		time_sessions := strings.Split(session, "_")
+		if len(time_sessions) == 2 {
+			intVar, err := strconv.Atoi(time_sessions[1])
+			if err == nil {
+				session_time = intVar
+			}
+		}
+		var duration = curentTime - int64(session_time/1000)
+		if session_time == 0 {
+			duration = 0
+		}
+		fmt.Printf("\ndata curentTime: %v\n", curentTime)
+		fmt.Printf("\ndata session_time: %v\n", session_time)
+
 		var quest_type_2_return []Quest_type_2_return
 		var quest_2s []Quest_type_2
 		_ = mySQLXContext.Select(&quest_2s, `SELECT * FROM survey_db.quest_type_2 where session = ? group by quest_num order by quest_num ASC`, session)
 		for _, quest2 := range quest_2s {
-			if quest2.Created_at <= minTime {
-				minTime = quest2.Created_at
-			}
-
-			if quest2.Created_at >= int64(maxTime) {
-				maxTime = quest2.Created_at
-			}
 			var quest_insite_2s []Inside_quest_type_2
 			_ = mySQLXContext.Select(&quest_insite_2s, `SELECT * FROM survey_db.inside_quest_type_2 where quest_type_2_id = ?`, quest2.Id)
 			x := Quest_type_2_return{
@@ -442,14 +451,6 @@ func ExportExcel(c echo.Context) error {
 		_ = mySQLXContext.Select(&quest_3s, `SELECT * FROM survey_db.quest_type_3 where session = ? group by quest_num order by quest_num ASC`, session)
 
 		for _, quest1 := range quest_1s {
-			if quest1.Created_at <= minTime {
-				minTime = quest1.Created_at
-			}
-
-			if quest1.Created_at >= int64(maxTime) {
-				maxTime = quest1.Created_at
-			}
-
 			result_answer = append(result_answer, quest1.Answer)
 		}
 		for _, quest2 := range quest_type_2_return {
@@ -473,13 +474,6 @@ func ExportExcel(c echo.Context) error {
 			result_answer = append(result_answer, strconv.Itoa(value))
 		}
 		for _, quest3 := range quest_3s {
-			if quest3.Created_at <= minTime {
-				minTime = quest3.Created_at
-			}
-
-			if quest3.Created_at >= int64(maxTime) {
-				maxTime = quest3.Created_at
-			}
 			answer := fmt.Sprintf(`Vị trí: %s
 				Ngồi chờ trên xe: %d
 				Đi bộ: %d
@@ -500,8 +494,8 @@ func ExportExcel(c echo.Context) error {
 			result_answer = append(result_answer, answer)
 		}
 
-		duration := fmt.Sprintf("%d", maxTime-minTime)
-		result_answer = append(result_answer, duration)
+		durations := fmt.Sprintf("%d", duration)
+		result_answer = append(result_answer, durations)
 
 		// result_value_excel = append(result_value_excel, map[string][]string{
 		// 	session: result_answer,
