@@ -466,6 +466,9 @@ func ExportExcel(c echo.Context) error {
 					total = total + answerInt
 				}
 			}
+			if num == 0 {
+				num = 1
+			}
 			value := total / num
 			result_answer = append(result_answer, strconv.Itoa(value))
 		}
