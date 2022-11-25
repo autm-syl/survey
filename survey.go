@@ -664,19 +664,20 @@ func GetAllWriteLog(c echo.Context) error {
 	}
 
 	var logs []string
-	_ = mySQLXContext.Select(&logs, `SELECT log FROM survey_db.log_data order by id ASC`)
+	_ = mySQLXContext.Select(&logs, `SELECT log FROM survey_db.log_data order by id DESC`)
 
 	resS := ""
 	for _, inte := range logs {
-		resS = resS + "\n" + inte
+		resS = "<p>" + resS + inte + "</p>"
 	}
 
-	res := Response{
+	_ = Response{
 		Message: "Success",
 		Data:    resS,
 	}
 
-	return c.JSON(http.StatusOK, res)
+	return c.HTML(http.StatusOK, resS)
+	// return c.JSON(http.StatusOK, res)
 }
 
 /**
