@@ -81,6 +81,10 @@ func main() {
 	api.GET("/all_data", GetAllItemProductByQuery)
 	api.GET("/export_pdf", ExportExcel)
 
+	// log
+	api.POST("/logdata", WriteLog)
+	api.GET("/all_log", GetAllWriteLog)
+
 	e.Start(":5055")
 }
 
@@ -616,6 +620,55 @@ func connect_db() {
 
 }
 
+func WriteLog(c echo.Context) error {
+	ctx := c.Request().Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var log Log_data
+	if err := c.Bind(&log); err != nil {
+		res := Response{
+			Message: "Failed",
+			Data:    "Bind data log error",
+		}
+
+		return c.JSON(http.StatusBadRequest, res)
+	}
+
+	// insert db
+	_, _ = mySQLXContext.NamedExec(
+		`INSERT INTO 
+		log_data (log)
+		VALUES 
+		(:log)`,
+		log,
+	)
+
+	res := Response{
+		Message: "Success",
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
+func GetAllWriteLog(c echo.Context) error {
+	ctx := c.Request().Context()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var logs []Log_data
+	_ = mySQLXContext.Select(&logs, `SELECT * FROM survey_db.log_data order by id ASC`)
+
+	res := Response{
+		Message: "Success",
+		Data:    logs,
+	}
+
+	return c.JSON(http.StatusOK, res)
+}
+
 /**
  * Initializes MySql infrastructure
  */
@@ -633,6 +686,11 @@ func ConnectMySQLSqlx(host string, userName string, password string, database st
 		db.SetConnMaxLifetime(time.Duration(maxConnectionLifeTime))
 	}
 	return db
+}
+
+type Log_data struct {
+	Id  int64  `db:"id" json:"Id"`
+	Log string `db:"Log" json:"Log"`
 }
 
 type Quest_type_1 struct {
