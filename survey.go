@@ -635,6 +635,7 @@ func WriteLog(c echo.Context) error {
 
 		return c.JSON(http.StatusBadRequest, res)
 	}
+	fmt.Println("Bind data log_data", log.Log)
 
 	// insert db
 	_, err := mySQLXContext.NamedExec(
