@@ -637,13 +637,17 @@ func WriteLog(c echo.Context) error {
 	}
 
 	// insert db
-	_, _ = mySQLXContext.NamedExec(
+	_, err := mySQLXContext.NamedExec(
 		`INSERT INTO 
 		log_data (log)
 		VALUES 
 		(:log)`,
 		log,
 	)
+
+	if err != nil {
+		fmt.Println("Failed to log_data to log_data", err.Error())
+	}
 
 	res := Response{
 		Message: "Success",
@@ -690,7 +694,7 @@ func ConnectMySQLSqlx(host string, userName string, password string, database st
 
 type Log_data struct {
 	Id  int64  `db:"id" json:"Id"`
-	Log string `db:"Log" json:"Log"`
+	Log string `db:"log" json:"Log"`
 }
 
 type Quest_type_1 struct {
