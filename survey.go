@@ -57,7 +57,7 @@ func main() {
 		}
 	}()
 
-	timeout := 10 * time.Second
+	timeout := 100 * time.Second
 
 	e := echo.New()
 
